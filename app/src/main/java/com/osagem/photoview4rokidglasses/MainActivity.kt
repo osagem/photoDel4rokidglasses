@@ -11,10 +11,21 @@ import android.os.Looper
 import android.widget.TextView
 import android.view.View
 import android.animation.ObjectAnimator
+import android.content.ContentValues
 import android.content.Intent
 import android.widget.Toast
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import android.net.Uri
+import android.os.Build
+import android.os.Environment
+import android.provider.MediaStore
+import androidx.activity.result.contract.ActivityResultContracts
+import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+
 
 class MainActivity : AppCompatActivity() {
 
@@ -25,7 +36,7 @@ class MainActivity : AppCompatActivity() {
     private val typingDelay = 60L // 每个字符显示的延迟时间 (毫秒)
     private val handler = Handler(Looper.getMainLooper())
     private lateinit var typeRunnable: Runnable
-
+    private var centeredToast: Toast? = null
     private lateinit var buttonEnter: MaterialButton
     private lateinit var buttonExitApp: MaterialButton
     private val fadeInDuration = 500L // 淡入动画的持续时间 (毫秒)
@@ -33,7 +44,31 @@ class MainActivity : AppCompatActivity() {
     private lateinit var buttonTakePhoto: MaterialButton // 新增：拍照按钮
     // 定义相机应用的包名和请求码
     private val CAMERA_PACKAGE_NAME = "com.android.camera2"
-    private val TAKE_PHOTO_REQUEST = 1
+    // 用于存储拍照后图片的 URI
+    private var photoUri: Uri? = null
+    //private val TAKE_PHOTO_REQUEST = 1
+
+    private val takePictureLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (photoUri != null && fileExists(photoUri!!)) {
+            showCenteredToast(getString(R.string.toast_take_photo_and_save_done))
+            // 通知媒体库扫描新文件，使其出现在相册中
+            Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE).also { mediaScanIntent ->
+                mediaScanIntent.data = photoUri
+                sendBroadcast(mediaScanIntent)
+            }
+        } else {
+            showCenteredToast(getString(R.string.toast_take_photo_cancelled_or_failed))
+
+        }
+    }
+
+    private fun showCenteredToast(message: String, duration: Int = Toast.LENGTH_SHORT) {
+        centeredToast?.cancel()
+        centeredToast = Toast.makeText(this, message, duration).apply {
+            setGravity(android.view.Gravity.CENTER, 0, 120)
+            show()
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -62,15 +97,12 @@ class MainActivity : AppCompatActivity() {
         buttonEnter = findViewById(R.id.buttonEnter)
         buttonExitApp = findViewById(R.id.buttonExitapp)
 
-        buttonTakePhoto = findViewById(R.id.buttonTakePhoto) // 新增：初始化拍照按钮
+        buttonTakePhoto = findViewById(R.id.buttonTakePhoto) // 初始化拍照按钮
         versionTextView = findViewById(R.id.main_version) // 初始化 versionTextView
 
-        // 找到 main_version TextView
-        //val versionTextView: TextView = findViewById(R.id.main_version)
         // 从自动生成的 BuildConfig 中获取版本名称
         val versionName = BuildConfig.VERSION_NAME
         // 将版本名称设置到 TextView 的文本中
-        //versionTextView.text = "v$versionName by osagem"
         versionTextView.text = "v$versionName by osagem"
 
         // 初始化时清空 TextView
@@ -100,7 +132,7 @@ class MainActivity : AppCompatActivity() {
             finishAndRemoveTask()
         }
 
-        // 新增：为拍照按钮设置点击监听器
+        // 为拍照按钮设置点击监听器
         buttonTakePhoto.setOnClickListener {
             dispatchTakePictureIntent()
         }
@@ -129,7 +161,7 @@ class MainActivity : AppCompatActivity() {
         buttonEnter.alpha = 0f
         buttonEnter.visibility = View.VISIBLE // 然后设置为可见
         buttonTakePhoto.alpha = 0f // 新增
-        buttonTakePhoto.visibility = View.VISIBLE // 新增
+        buttonTakePhoto.visibility = View.VISIBLE // 然后设置为可见
 
         // 为 versionTextView 创建淡入动画
         ObjectAnimator.ofFloat(versionTextView, "alpha", 0f, 1f).apply {
@@ -143,7 +175,7 @@ class MainActivity : AppCompatActivity() {
             start()
         }
 
-        // 新增：为 buttonTakePhoto 创建淡入动画
+        // 为 buttonTakePhoto 创建淡入动画
         ObjectAnimator.ofFloat(buttonTakePhoto, "alpha", 0f, 1f).apply {
             duration = fadeInDuration
             start()
@@ -164,46 +196,74 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun dispatchTakePictureIntent() {
-        // 创建一个显式 Intent 来启动特定的相机应用
         val takePictureIntent = packageManager.getLaunchIntentForPackage(CAMERA_PACKAGE_NAME)
-        if (takePictureIntent != null) {
-            // "android.media.action.STILL_IMAGE_CAMERA" Action 通常用于打开相机应用到拍照模式
-            takePictureIntent.action = android.provider.MediaStore.ACTION_IMAGE_CAPTURE
+        if (takePictureIntent == null) {
+            //Toast.makeText(this, "未找到指定的相机应用 ($CAMERA_PACKAGE_NAME)", Toast.LENGTH_LONG).show()
+            showCenteredToast("${getString(R.string.toast_spec_camera_app_not_found)}: $CAMERA_PACKAGE_NAME")
+            return
+        }
 
-            // "android.intent.extra.quickCapture" 为 true 时，会尝试“拍完即走”，
-            // 但为了保证在低内存设备上也能成功保存，我们不强制要求相机拍完后立即退出。
-            // 相反，我们使用 startActivityForResult 等待返回结果，这更可靠。
-            takePictureIntent.putExtra("android.intent.extra.quickCapture", true)
+        // 为照片创建一个 URI
+        photoUri = try {
+            createImageUri()
+        } catch (ex: Exception) {
+            //Toast.makeText(this, "创建图片URI失败: ${ex.message}", Toast.LENGTH_SHORT).show()
+            showCenteredToast("${getString(R.string.toast_failed_to_create_image_URI)}: ${ex.message}")
+            null
+        }
+
+        photoUri?.also { uri ->
+            // 将目标 URI 传递给相机应用
+            takePictureIntent.action = MediaStore.ACTION_IMAGE_CAPTURE
+            takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, uri)
+            // 授予相机应用对该 URI 的写权限
+            takePictureIntent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
 
             try {
-                // 使用 startActivityForResult 启动相机，并等待返回结果
-                startActivityForResult(takePictureIntent, TAKE_PHOTO_REQUEST)
+                takePictureLauncher.launch(takePictureIntent)
             } catch (e: Exception) {
-                // 如果启动失败（例如应用未安装），给出提示
-                Toast.makeText(this, "无法启动相机应用，请检查是否已安装。", Toast.LENGTH_SHORT).show()
+                showCenteredToast(getString(R.string.toast_camera_app_cannot_launched))
                 e.printStackTrace()
             }
-        } else {
-            // 如果找不到对应的包名，给出提示
-            Toast.makeText(this, "未找到指定的相机应用 ($CAMERA_PACKAGE_NAME)", Toast.LENGTH_LONG).show()
         }
     }
 
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == TAKE_PHOTO_REQUEST) {
-            if (resultCode == RESULT_OK) {
-                // 通常，当 resultCode 是 RESULT_OK 时，表示照片已成功拍摄并保存。
-                // 我们可以在这里给用户一个肯定的反馈。
-                Toast.makeText(this, "照片拍摄成功", Toast.LENGTH_SHORT).show()
+    private fun createImageUri(): Uri? {
+        val timeStamp: String = SimpleDateFormat("yyyyMMdd-HHmmss", Locale.getDefault()).format(Date())
+        val imageFileName = "img-${timeStamp}.jpg"
+
+        val contentValues = ContentValues().apply {
+            put(MediaStore.Images.Media.DISPLAY_NAME, imageFileName)
+            put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
+            // 在 Android 10 (API 29) 及以上版本，使用这个相对路径
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                put(MediaStore.Images.Media.RELATIVE_PATH, "${Environment.DIRECTORY_DCIM}/Camera")
             } else {
-                // 如果用户取消了拍照或发生了其他错误，resultCode 将不是 RESULT_OK。
-                Toast.makeText(this, "拍照已取消或失败", Toast.LENGTH_SHORT).show()
+                // 在 Android 9 (API 28) 上，需要提供绝对路径
+                val imageDir = Environment.getExternalStoragePublicDirectory("${Environment.DIRECTORY_DCIM}/Camera")
+                if (!imageDir.exists()) {
+                    imageDir.mkdirs()
+                }
+                val imageFile = File(imageDir, imageFileName)
+                put(MediaStore.Images.Media.DATA, imageFile.absolutePath)
             }
+        }
+        // 通过 MediaStore 插入一个新的图片条目，并获取其 content URI
+        // 这个 URI 是相机应用写入图片数据的目标
+        return contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
+    }
+
+    //检查给定的 content URI 对应的文件是否存在且有内容
+    private fun fileExists(uri: Uri): Boolean {
+        return try {
+            contentResolver.openInputStream(uri)?.use { it.read() != -1 } ?: false
+        } catch (e: Exception) {
+            false
         }
     }
 
     override fun onDestroy() {
+        centeredToast?.cancel()
         super.onDestroy()
         // 移除回调以防止内存泄漏
         handler.removeCallbacks(typeRunnable)

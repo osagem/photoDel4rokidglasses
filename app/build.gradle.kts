@@ -55,4 +55,5 @@ dependencies {
     implementation("androidx.media3:media3-exoplayer:1.3.1")
     implementation("androidx.media3:media3-ui:1.3.1")
     kapt("com.github.bumptech.glide:compiler:4.16.0")
+    implementation("androidx.activity:activity-ktx:1.11.0")
 }

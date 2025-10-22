@@ -32,5 +32,10 @@
     <string name="toast_reached_end_starting_over">Reached end, starting over.</string>
     <string name="toast_error_accessing_photos">Error accessing.</string>
     <string name="toast_no_photos_found">No photos or videos were found on the RokidGlasses.</string>
+    <string name="toast_take_photo_and_save_done">photo was successfully taken and has been saved</string>
+    <string name="toast_take_photo_cancelled_or_failed">photo shoot has been cancelled or failed</string>
+    <string name="toast_spec_camera_app_not_found">specified camera application was not found</string>
+    <string name="toast_failed_to_create_image_URI">failed to create the image URI</string>
+    <string name="toast_camera_app_cannot_launched">camera application cannot be launched</string>
     <string name="video_info_format">%1$s / %2$s</string>
 </resources>

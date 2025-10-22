@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 指向外部存储设备的根目录，允许共享其下的任何子目录文件 -->
+    <external-path name="external_files" path="." />
+</paths>
