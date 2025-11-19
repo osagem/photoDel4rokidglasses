@@ -5,61 +5,62 @@ import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
-import com.google.android.material.button.MaterialButton
-import android.os.Handler
-import android.os.Looper
-import android.widget.TextView
 import android.view.View
-import android.animation.ObjectAnimator
-import android.content.ContentValues
 import android.content.Intent
-import android.widget.Toast
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsControllerCompat
-import android.net.Uri
-import android.os.Build
-import android.os.Environment
-import android.provider.MediaStore
-import androidx.activity.result.contract.ActivityResultContracts
-import java.io.File
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import com.osagem.photoview4rokidglasses.databinding.ActivityMainBinding
 
-
+private const val TYPING_DELAY = 60L // 每个字符显示的延迟时间 (毫秒)
+private const val FADE_IN_DURATION = 500L // 淡入动画的持续时间 (毫秒)
 class MainActivity : AppCompatActivity() {
 
-    //添加text的打字机逐个字符显示效果
-    private lateinit var sloganTextView: TextView
-    private val fullSloganText: String by lazy { getString(R.string.main_slogan) }
-    private var sloganIndex = 0
-    private val typingDelay = 60L // 每个字符显示的延迟时间 (毫秒)
-    private val handler = Handler(Looper.getMainLooper())
-    private lateinit var typeRunnable: Runnable
-    private var centeredToast: Toast? = null
-    private lateinit var buttonEnter: MaterialButton
-    private lateinit var buttonExitApp: MaterialButton
-    private val fadeInDuration = 500L // 淡入动画的持续时间 (毫秒)
-    private lateinit var versionTextView: TextView
+    // 声明一个 lateinit 的 binding 变量
+    private lateinit var binding: ActivityMainBinding
 
-    private fun showCenteredToast(message: String, duration: Int = Toast.LENGTH_SHORT) {
-        centeredToast?.cancel()
-        centeredToast = Toast.makeText(this, message, duration).apply {
-            setGravity(android.view.Gravity.CENTER, 0, 120)
-            show()
-        }
-    }
+    // 定义常量和懒加载属性
+    private val fullSloganText: String by lazy { getString(R.string.main_slogan) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        setContentView(R.layout.activity_main)
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
+
+        // 使用 View Binding 来初始化和设置内容视图
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+
+        // 对根视图设置窗口内边距监听
+        ViewCompat.setOnApplyWindowInsetsListener(binding.main) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
         }
 
+        // --- 开始全屏代码 ---
+        setupFullScreenMode()
+
+        // 通过 binding 对象安全地访问视图
+        // 从自动生成的 BuildConfig 中获取版本名称
+        binding.mainVersion.text = "v${BuildConfig.VERSION_NAME} by osagem"
+
+        // 定义打字机效果
+        startTypingEffect()
+
+        // 设置点击事件监听
+        binding.buttonEnter.setOnClickListener {
+            val intent = Intent(this, PhotoListActivity::class.java)
+            startActivity(intent)
+        }
+        binding.buttonExitapp.setOnClickListener {
+            finishAndRemoveTask()
+        }
+    }
+
+    // 设置真全屏
+    private fun setupFullScreenMode() {
         // 让内容布局扩展到系统栏（状态栏和导航栏）后面
         WindowCompat.setDecorFitsSystemWindows(window, false)
         // 获取 WindowInsetsController
@@ -70,98 +71,67 @@ class MainActivity : AppCompatActivity() {
         // 设置交互行为：当从屏幕边缘滑动时，系统栏会短暂显示
         windowInsetsController.systemBarsBehavior =
             WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-        // --- 结束全屏代码 ---
-
-        // 获取 TextView 实例
-        sloganTextView = findViewById(R.id.main_slogan)
-        buttonEnter = findViewById(R.id.buttonEnter)
-        buttonExitApp = findViewById(R.id.buttonExitapp)
-        versionTextView = findViewById(R.id.main_version) // 初始化 versionTextView
-
-        // 从自动生成的 BuildConfig 中获取版本名称
-        val versionName = BuildConfig.VERSION_NAME
-        // 将版本名称设置到 TextView 的文本中
-        versionTextView.text = "v$versionName by osagem"
-
-        // 初始化时清空 TextView
-        sloganTextView.text = ""
-        // 定义打字机效果的 Runnable
-        typeRunnable = object : Runnable {
-            override fun run() {
-                if (sloganIndex < fullSloganText.length) {
-                    sloganTextView.append(fullSloganText[sloganIndex].toString())
-                    sloganIndex++
-                    handler.postDelayed(this, typingDelay)
-                } else {
-                    // 打字机效果完成
-                    showButtonsWithFadeIn()
-                }
-            }
-        }
-
-        startTypingEffect()
-
-        buttonEnter.setOnClickListener {
-            val intent = Intent(this, PhotoListActivity::class.java)
-            startActivity(intent)
-        }
-
-        buttonExitApp.setOnClickListener {
-            finishAndRemoveTask()
-        }
     }
+
+    // 开始打字机效果
     private fun startTypingEffect() {
         // 为打字效果准备
-        sloganIndex = 0 // 重置索引
-        sloganTextView.text = "" // 清空文本，以便重新开始
-        // 确保按钮和版本textview在开始时不可见和完全透明，以便淡入效果从透明开始
-        versionTextView.alpha = 0f
-        versionTextView.visibility = View.GONE
-        buttonExitApp.alpha = 0f
-        buttonExitApp.visibility = View.GONE
-        buttonEnter.alpha = 0f
-        buttonEnter.visibility = View.GONE
-        handler.postDelayed(typeRunnable, typingDelay)
+        binding.mainSlogan.text = "" // 清空文本，以便重新开始
+
+        // 确保按钮和版本textview在开始时不可见
+        binding.mainVersion.visibility = View.GONE
+        binding.buttonExitapp.visibility = View.GONE
+        binding.buttonEnter.visibility = View.GONE
+
+        lifecycleScope.launch {
+            fullSloganText.forEach { char ->
+                binding.mainSlogan.append(char.toString())
+                delay(TYPING_DELAY)
+            }
+            // 协程执行完毕，说明打字机效果完成
+            showButtonsWithFadeIn()
+        }
     }
+
+    //使用淡入动画显示按钮和版本信息
     private fun showButtonsWithFadeIn() {
-        // 将界面上两个按钮和一个版本TextView设置为可见，但保持透明
-        versionTextView.alpha = 0f
-        versionTextView.visibility = View.VISIBLE // 然后设置为可见
-        buttonExitApp.alpha = 0f
-        buttonExitApp.visibility = View.VISIBLE // 然后设置为可见
-        buttonEnter.alpha = 0f
-        buttonEnter.visibility = View.VISIBLE // 然后设置为可见
-
-        // 为 versionTextView 创建淡入动画
-        ObjectAnimator.ofFloat(versionTextView, "alpha", 0f, 1f).apply {
-            duration = fadeInDuration
-            start()
+        // 将视图的初始 alpha 设为0，然后设为可见，为淡入做准备
+        binding.mainVersion.apply {
+            alpha = 0f
+            visibility = View.VISIBLE
+        }
+        binding.buttonExitapp.apply {
+            alpha = 0f
+            visibility = View.VISIBLE
+        }
+        binding.buttonEnter.apply {
+            alpha = 0f
+            visibility = View.VISIBLE
         }
 
-        // 为 buttonExitApp 创建淡入动画
-        ObjectAnimator.ofFloat(buttonExitApp, "alpha", 0f, 1f).apply {
-            duration = fadeInDuration
-            start()
-        }
+        // 执行动画
+        binding.mainVersion.animate()
+            .alpha(1f)
+            .setDuration(FADE_IN_DURATION)
+            .start()
 
-        // 为 buttonEnter 创建淡入动画
-        ObjectAnimator.ofFloat(buttonEnter, "alpha", 0f, 1f).apply {
-            duration = fadeInDuration
-            addListener(object : android.animation.AnimatorListenerAdapter() {
-                override fun onAnimationEnd(animation: android.animation.Animator) {
-                    // 动画结束后，让 "进入" 按钮获得焦点，方便用户直接点击进入
-                    buttonEnter.requestFocus()
-                }
-            })
-            start()
-        }
+        binding.buttonExitapp.animate()
+            .alpha(1f)
+            .setDuration(FADE_IN_DURATION)
+            .start()
 
+        binding.buttonEnter.animate()
+            .alpha(1f)
+            .setDuration(FADE_IN_DURATION)
+            .withEndAction {
+                // 动画结束后，让 "进入" 按钮获得焦点
+                binding.buttonEnter.requestFocus()
+            }
+            .start()
     }
 
+    // 如有需要清理的资源，就放在这里
     override fun onDestroy() {
-        centeredToast?.cancel()
         super.onDestroy()
-        // 移除回调以防止内存泄漏
-        handler.removeCallbacks(typeRunnable)
     }
 }

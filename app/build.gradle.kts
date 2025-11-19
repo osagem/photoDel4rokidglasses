@@ -46,7 +46,7 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
-    implementation(libs.androidx.activity)
+//    implementation(libs.androidx.activity)
     implementation(libs.androidx.constraintlayout)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
@@ -56,4 +56,5 @@ dependencies {
     implementation("androidx.media3:media3-ui:1.3.1")
     kapt("com.github.bumptech.glide:compiler:4.16.0")
     implementation("androidx.activity:activity-ktx:1.11.0")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.2")
 }
