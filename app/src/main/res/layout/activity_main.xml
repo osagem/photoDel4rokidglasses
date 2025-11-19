@@ -40,24 +40,6 @@
         tools:visibility="visible" />
 
     <com.google.android.material.button.MaterialButton
-        android:id="@+id/buttonEnter"
-        style="@style/Widget.App.Button.OutlinedButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/button_enterApp"
-        android:textColor="@color/button_stroke_color_selector"
-        android:visibility="gone"
-        app:cornerRadius="12px"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.931"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.857"
-        app:strokeWidth="2px"
-        tools:visibility="visible" />
-
-    <com.google.android.material.button.MaterialButton
         android:id="@+id/buttonExitapp"
         style="@style/Widget.App.Button.OutlinedButton"
         android:layout_width="wrap_content"
@@ -68,7 +50,7 @@
         app:cornerRadius="12px"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.068"
+        app:layout_constraintHorizontal_bias="0.219"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="0.857"
@@ -76,16 +58,17 @@
         tools:visibility="visible" />
 
     <com.google.android.material.button.MaterialButton
-        android:id="@+id/buttonTakePhoto"
+        android:id="@+id/buttonEnter"
         style="@style/Widget.App.Button.OutlinedButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="@string/button_takePhoto"
+        android:text="@string/button_enterApp"
         android:textColor="@color/button_stroke_color_selector"
         android:visibility="gone"
         app:cornerRadius="12px"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.78"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="0.857"
