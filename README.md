@@ -22,7 +22,7 @@ btw：如果在手机rokid ai app里面提词器设置里绑定蓝牙鼠标、�
 屏摄视频：
 https://github.com/user-attachments/assets/c93350e2-2f8c-4665-ab66-522825544bdf
 
-官方开发者论坛视频：
+官方开发者论坛帖子：
 https://forum.rokid.com/post/detail/2300
 
 
