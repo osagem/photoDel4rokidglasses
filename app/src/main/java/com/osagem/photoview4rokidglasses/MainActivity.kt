@@ -7,6 +7,7 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import android.view.View
 import android.content.Intent
+import android.view.WindowManager
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.lifecycleScope
@@ -31,6 +32,9 @@ class MainActivity : AppCompatActivity() {
         // 使用 View Binding 来初始化和设置内容视图
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        // 屏幕常亮
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
         // 对根视图设置窗口内边距监听
         ViewCompat.setOnApplyWindowInsetsListener(binding.main) { v, insets ->

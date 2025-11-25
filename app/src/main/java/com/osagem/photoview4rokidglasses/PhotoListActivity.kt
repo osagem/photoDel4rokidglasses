@@ -46,6 +46,7 @@ import android.os.Looper
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.media3.common.Player
+import android.view.WindowManager
 
 class PhotoListActivity : AppCompatActivity() {
 
@@ -113,6 +114,9 @@ class PhotoListActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContentView(R.layout.activity_photo_list)
+
+        // 屏幕常亮
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
         // 让内容布局扩展到系统栏（状态栏和导航栏）后面
         WindowCompat.setDecorFitsSystemWindows(window, false)
