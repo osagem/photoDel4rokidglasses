@@ -31,4 +31,4 @@ https://forum.rokid.com/post/detail/2300
 <img width="481" height="640" alt="调试截图" src="https://github.com/user-attachments/assets/f9ed46b7-f3df-4665-853f-8d8a0d5df4ac" />
 
 免责声明：
-本项目开源，实验性质的开发，使用本项目任意文件、代码造成的后果请自负。
+本项目开源，实验性质开发，本人尽自己最大努力完善本项目，但还是有可能有所疏漏，使用中造成任何意外问题请多担待，欢迎反馈问题、建议，欢迎交流。
