@@ -9,6 +9,7 @@
     <string name="button_takePhoto">SHOOT</string>
     <string name="photo_count_format">%1$d / %2$d</string>
     <string name="button_delPhoto">Del</string>
+    <string name="button_delCancel">Cancel</string>
     <string name="toast_permission_Denied">Permission denied to read external storage</string>
     <string name="toast_write_permission_granted">Write permission granted. Try deleting again if needed.</string>
     <string name="toast_write_permission_denied">Permission denied to write to external storage</string>
@@ -38,4 +39,5 @@
     <string name="toast_failed_to_create_image_URI">failed to create the image URI</string>
     <string name="toast_camera_app_cannot_launched">camera application cannot be launched</string>
     <string name="video_info_format">%1$s / %2$s</string>
+    <string name="dialog_del_confirm_text">Delete it?</string>
 </resources>

@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>    <!-- 弹窗宽度，rokid glasses显示总宽度为480px（高640px） -->
+    <dimen name="dialog_width_any_percent">280px</dimen>
+</resources>

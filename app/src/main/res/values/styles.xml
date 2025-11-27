@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 自定义删除确认弹窗的整体样式 -->
+    <style name="CustomAlertDialogTheme" parent="Theme.MaterialComponents.DayNight.Dialog.Alert">
+        <item name="android:background">@android:color/transparent</item>
+        <item name="windowNoTitle">true</item>
+        <item name="android:windowBackground">@drawable/dialog_rounded_bg</item>
+        <item name="android:windowTitleStyle">@style/CustomDialogTitleText</item>
+        <item name="android:textViewStyle">@style/CustomDialogMessageText</item>
+        <item name="buttonBarPositiveButtonStyle">@style/CustomDialogButton.Positive</item>
+        <item name="buttonBarNegativeButtonStyle">@style/CustomDialogButton.Negative</item>
+        <item name="buttonBarNeutralButtonStyle">@style/CustomDialogButton</item>
+        <item name="android:windowMinWidthMajor">@dimen/dialog_width_any_percent</item>
+        <item name="android:windowMinWidthMinor">@dimen/dialog_width_any_percent</item>
+        <item name="materialAlertDialogButtonSpacerVisibility">8</item> <!-- 移除按钮间的间隙 8=gone -->
+        <item name="colorPrimary">@color/rgrcolor</item>
+        <!-- 【新增】重写内部按钮面板的样式，使其居中 -->
+<!--        <item name="materialAlertDialogButtonPanelStyle">@style/CenteredAlertDialogButtons</item>-->
+    </style>
+
+    <!-- 【新增】定义居中的按钮面板样式 -->
+<!--    <style name="CenteredAlertDialogButtons" parent="Widget.MaterialComponents.ButtonBar.AlertDialog">-->
+<!--        <item name="android:gravity">center</item>-->
+<!--    </style>-->
+
+    <!-- 标题文字样式 -->
+    <style name="CustomDialogTitleText" parent="TextAppearance.AppCompat.Title">
+        <item name="android:textColor">@color/rgrcolor_normal</item>
+        <item name="android:textSize">20sp</item>
+<!--        <item name="android:textStyle">bold</item>-->
+    </style>
+
+    <!-- 内容文字样式 -->
+    <style name="CustomDialogMessageText" parent="TextAppearance.AppCompat.Body1">
+        <item name="android:textColor">@color/rgrcolor_normal</item>
+        <item name="android:textSize">18sp</item>
+        <item name="android:gravity">center</item>
+    </style>
+
+    <!-- 按钮基础样式 -->
+    <style name="CustomDialogButton" parent="Widget.MaterialComponents.Button.OutlinedButton">
+        <item name="android:textSize">14sp</item>
+        <item name="android:paddingStart">20dp</item>
+        <item name="android:paddingEnd">20dp</item>
+        <item name="android:layout_marginStart">8dp</item>
+        <item name="android:layout_marginEnd">8dp</item>
+        <item name="strokeColor">@color/button_stroke_color_selector</item>
+        <item name="strokeWidth">2px</item>
+        <item name="cornerRadius">12px</item>
+    </style>
+
+    <!-- "删除"按钮的特定样式（继承基础样式） -->
+    <style name="CustomDialogButton.Positive" parent="CustomDialogButton">
+        <item name="android:textColor">@color/button_stroke_color_selector</item>
+    </style>
+
+    <!-- "返回"按钮的特定样式（继承基础样式） -->
+    <style name="CustomDialogButton.Negative" parent="CustomDialogButton">
+        <item name="android:textColor">@color/button_stroke_color_selector</item>
+    </style>
+</resources>

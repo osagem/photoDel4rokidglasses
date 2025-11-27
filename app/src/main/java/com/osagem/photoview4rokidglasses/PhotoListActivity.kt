@@ -1,16 +1,15 @@
 package com.osagem.photoview4rokidglasses
 
 import android.Manifest
-import android.app.RecoverableSecurityException
 import android.content.ContentUris
 import android.content.Intent
-import android.content.IntentSender
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Typeface
+import android.media.MediaScannerConnection
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -23,11 +22,8 @@ import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
-import androidx.activity.result.ActivityResultLauncher
-import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isVisible
@@ -47,18 +43,23 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.media3.common.Player
 import android.view.WindowManager
+import android.provider.Settings
+import androidx.appcompat.app.AlertDialog
+import androidx.core.app.ActivityCompat
 
 class PhotoListActivity : AppCompatActivity() {
 
-    // 数据类和枚举
     data class MediaItem(
         val uri: Uri,
         val type: MediaType,
         val dateTaken: Long,
+        val displayName: String
     )
     enum class MediaType { IMAGE, VIDEO }
     companion object {
         private const val DEBUG = true //false or true 调试开关：上线时改为 false 即可关闭所有调试日志
+
+        private const val LEGACY_STORAGE_PERMISSION_REQUEST_CODE = 102
 
         private const val TAG = "PhotoManager"
 
@@ -85,15 +86,13 @@ class PhotoListActivity : AppCompatActivity() {
     private var emojiBitmap: Bitmap? = null
     private lateinit var loadingIndicator: ProgressBar
     private lateinit var textView_videoInfo: TextView //增加文件信息显示
-    private lateinit var deleteRequestLauncher: ActivityResultLauncher<IntentSenderRequest>
-    private lateinit var permissionLauncher: ActivityResultLauncher<Array<String>>
 
     // 用于定时更新视频时长播放进度信息的 Handler 和 Runnable
     private val handler = Handler(Looper.getMainLooper())
     private val updateProgressAction = object : Runnable {
         override fun run() {
             exoPlayer?.let { player ->
-                // 【修改】放宽条件：只要播放器不是空闲状态且有时长，就更新UI
+                // 只要播放器不是空闲状态且有时长，就更新UI
                 if (player.playbackState != Player.STATE_IDLE && player.duration > 0) {
                     val currentPosition = player.currentPosition
                     val totalDuration = player.duration
@@ -140,25 +139,78 @@ class PhotoListActivity : AppCompatActivity() {
         // 初始化播放器 这是播放器生命周期的起点
         initializePlayer()
 
+        // 步骤 2: 在加载数据前检查权限
+        if (checkStoragePermission()) {
+            loadAllMediaUris()
+        } else {
+            requestStoragePermission()
+        }
+
         // 设置监听器等
         setupListeners()
 
-        // 【新增】在这里初始化 permissionLauncher
-        permissionLauncher =
-            registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
-                // 检查读取权限是否被授予
-                if (permissions[Manifest.permission.READ_EXTERNAL_STORAGE] == true) {
-                    loadAllMediaUris()
-                } else {
-                    showCenteredToast(getString(R.string.toast_read_permission_denied))
-                    finish() // 权限被拒绝，关闭页面
-                }
-            }
-
         // 开始业务逻辑
-        checkAndRequestPermission()
         updatePhotoCountText()
         emojiBitmap = createBitmapFromEmoji("🤷", 200)
+    }
+
+    private fun checkStoragePermission(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            // Android 11 (R) 及以上版本
+            Environment.isExternalStorageManager()
+        } else {
+            // Android 10 (Q) 及以下版本
+            ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE
+            ) == PackageManager.PERMISSION_GRANTED
+        }
+    }
+
+    private fun requestStoragePermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            // 引导用户到设置页面授予 MANAGE_EXTERNAL_STORAGE
+            try {
+                val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
+                intent.data = Uri.parse("package:$packageName")
+                storagePermissionLauncher.launch(intent)
+            } catch (e: Exception) {
+                val intent = Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION)
+                storagePermissionLauncher.launch(intent)
+            }
+        } else {
+            // 在旧版本上请求 WRITE_EXTERNAL_STORAGE
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE),
+                LEGACY_STORAGE_PERMISSION_REQUEST_CODE
+            )
+        }
+    }
+
+    // 处理从设置页面返回的结果
+    private val storagePermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+            // 当用户从设置页返回后，再次检查权限
+            if (checkStoragePermission()) {
+                loadAllMediaUris()
+            } else {
+                showCenteredToast("未授予文件管理权限，无法加载照片")
+                handleNoPhotosFound()
+            }
+        }
+
+    // 处理旧版安卓的权限请求回调
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == LEGACY_STORAGE_PERMISSION_REQUEST_CODE) {
+            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                loadAllMediaUris()
+            } else {
+                showCenteredToast("未授予存储权限，无法加载照片")
+                handleNoPhotosFound()
+            }
+        }
     }
 
     override fun onStart() {
@@ -303,7 +355,6 @@ class PhotoListActivity : AppCompatActivity() {
         updatePhotoCountText()
     }
 
-
     // ------------------- 其他辅助方法 -------------------
     private fun formatDuration(milliseconds: Long): String {
         val totalSeconds = milliseconds / 1000
@@ -338,17 +389,6 @@ class PhotoListActivity : AppCompatActivity() {
     }
 
     private fun setupListeners() {
-        // 设置删除操作的结果回调
-        deleteRequestLauncher =
-            registerForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { result ->
-                if (result.resultCode == RESULT_OK) {
-                    // 用户在系统的确认对话框中点击了“允许”，现在可以执行真正的删除操作
-                    deleteCurrentImage()
-                } else {
-                    // 用户取消了操作
-                    showCenteredToast(getString(R.string.toast_photo_deletion_cancelled_failed))
-                }
-            }
 
         // 为“下一个”按钮设置点击事件
         buttonNext.setOnClickListener { loadNextMedia() }
@@ -364,7 +404,8 @@ class PhotoListActivity : AppCompatActivity() {
         // 为“删除”按钮设置点击事件
         buttonDelphoto.setOnClickListener {
             if (allMediaItems.isNotEmpty() && currentImageIndex in allMediaItems.indices) {
-                deleteCurrentImage()
+//                deleteCurrentImage()
+                showDeleteConfirmationDialog()
             } else {
                 showCenteredToast(getString(R.string.toast_no_photo_selected_to_del))
             }
@@ -379,70 +420,142 @@ class PhotoListActivity : AppCompatActivity() {
         }
     }
 
-    private fun checkAndRequestPermission() {
-        val permissionsToRequest = mutableListOf<String>()
+    // 显示删除确认弹窗
+    private fun showDeleteConfirmationDialog() {
+        val builder = AlertDialog.Builder(this, R.style.CustomAlertDialogTheme)
+        // 加载自定义标题布局文件
+        val customTitleView = layoutInflater.inflate(R.layout.dialog_custom_title, null)
 
-        if (ContextCompat.checkSelfPermission(
-                this,
-                Manifest.permission.READ_EXTERNAL_STORAGE
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            permissionsToRequest.add(Manifest.permission.READ_EXTERNAL_STORAGE)
+        // 通过ID找到布局中的TextView
+        val titleTextView = customTitleView.findViewById<TextView>(R.id.dialog_del_confirm_title_text)
+
+        // 为自定义标题设置文本内容
+        titleTextView.text = getString(R.string.dialog_del_confirm_text)
+
+        // 将包含自定义TextView的整个视图设置为弹窗的标题
+        builder.setCustomTitle(customTitleView)
+
+        // 确认删除按钮
+        builder.setPositiveButton(getString(R.string.button_delPhoto)) { dialog, _ ->
+            deleteCurrentImage()
+            dialog.dismiss()
         }
-        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.P &&
-            ContextCompat.checkSelfPermission(
-                this,
-                Manifest.permission.WRITE_EXTERNAL_STORAGE
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            permissionsToRequest.add(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+
+        // 取消删除按钮
+        builder.setNegativeButton(getString(R.string.button_delCancel)) { dialog, _ ->
+            dialog.dismiss()
         }
-        if (permissionsToRequest.isNotEmpty()) {
-            // 使用已声明的成员变量来启动权限请求
-            permissionLauncher.launch(permissionsToRequest.toTypedArray())
-        } else {
-            loadAllMediaUris()
+
+        val dialog = builder.create()
+
+        // 确保弹窗时也能隐藏系统导航栏和状态栏，保持沉浸式体验
+        dialog.window?.let { window ->
+            // WindowInsetsControllerCompat 是 AndroidX 中用于控制系统栏的推荐方式
+            val controller = WindowInsetsControllerCompat(window, window.decorView)
+            // 隐藏状态栏和导航栏
+            controller.hide(WindowInsetsCompat.Type.systemBars())
+            // 设置行为模式为 BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE，
+            // 这样即使用户从屏幕边缘滑入，系统栏也只是短暂显示然后自动隐藏，
+            // 不会破坏应用的沉浸式布局。
+            controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         }
+
+        // 让“删除”按钮（PositiveButton）默认获得焦点
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).requestFocus()
+        }
+
+        dialog.show() // 显示弹窗
     }
 
     private fun deleteCurrentImage() {
-        val uriToDelete = allMediaItems[currentImageIndex].uri
-        try {
-            val rowsDeleted = contentResolver.delete(uriToDelete, null, null)
-            if (rowsDeleted > 0) {
-                handleDeletionSuccess(uriToDelete)
+        if (currentImageIndex == -1 || allMediaItems.isEmpty()) {
+            debugLog("Deletion failed: Invalid index or empty list.")
+            return
+        }
+
+        val itemToDelete = allMediaItems[currentImageIndex]
+
+        lifecycleScope.launch {
+            var fileDeleted = false
+
+            // 在后台线程执行文件 IO 操作
+            withContext(Dispatchers.IO) {
+                val path = getPathFromUri(itemToDelete.uri)
+                if (path != null) {
+                    val mediaFile = File(path)
+                    if (mediaFile.exists() && mediaFile.delete()) {
+                        fileDeleted = true
+                        debugLog("Successfully deleted media file: ${mediaFile.absolutePath}")
+
+                        // 删除成功后，通知 MediaStore 更新
+                        scanFilePath(mediaFile.absolutePath)
+
+                        // 如果是视频，尝试删除同名的 .txt 文件
+                        if (itemToDelete.type == MediaType.VIDEO) {
+                            val txtFile = File(mediaFile.parent, "${mediaFile.nameWithoutExtension}.txt")
+                            if (txtFile.exists() && txtFile.delete()) {
+                                debugLog("Successfully deleted associated txt file: ${txtFile.absolutePath}")
+                                // 同样通知 MediaStore 更新
+                                scanFilePath(txtFile.absolutePath)
+                            } else {
+                                debugLog("Associated txt file not found or failed to delete: ${txtFile.absolutePath}")
+                            }
+                        }
+                    } else {
+                        Log.e(TAG, "Failed to delete media file: ${mediaFile.absolutePath}")
+                    }
+                } else {
+                    Log.e(TAG, "Could not get path from Uri to delete file: ${itemToDelete.uri}")
+                }
+            }
+
+            // 回到主线程更新 UI
+            if (fileDeleted) {
+                showCenteredToast(getString(R.string.toast_photo_deleted_succe))
+                exoPlayer?.stop()
+
+                allMediaItems.remove(itemToDelete)
+
+                if (allMediaItems.isEmpty()) {
+                    handleNoPhotosFound()
+                } else {
+                    if (currentImageIndex >= allMediaItems.size) {
+                        currentImageIndex = allMediaItems.size - 1
+                    }
+                    loadSpecificMedia(currentImageIndex)
+                }
+                updatePhotoCountText()
             } else {
                 showCenteredToast(getString(R.string.toast_failed_to_delete_photo))
-            }
-        } catch (e: SecurityException) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                val recoverable = e as? RecoverableSecurityException
-                if (recoverable != null) {
-                    val intentSender: IntentSender =
-                        recoverable.userAction.actionIntent.intentSender
-                    deleteRequestLauncher.launch(IntentSenderRequest.Builder(intentSender).build())
-                } else {
-                    showCenteredToast(getString(R.string.toast_deletion_failed_security_reasons))
-                }
-            } else {
-                showCenteredToast(getString(R.string.toast_write_permission_granted))
             }
         }
     }
 
-    private fun handleDeletionSuccess(deletedUri: Uri? = null) {
-        deletedUri?.let { debugLog("Deleted → $it") }
-        showCenteredToast(getString(R.string.toast_photo_deleted_succe))
-        exoPlayer?.stop()
-        allMediaItems.removeAt(currentImageIndex)
-        if (allMediaItems.isEmpty()) {
-            handleNoPhotosFound()
-        } else {
-            if (currentImageIndex >= allMediaItems.size) {
-                currentImageIndex = allMediaItems.size - 1
+    // 辅助函数：从 Uri 获取文件路径
+    private fun getPathFromUri(uri: Uri): String? {
+        // MediaStore.MediaColumns.DATA 在 Images 和 Video Provider 中是通用的列名
+        // 并且在 API 29 以下是标准做法。 在 API 29+ 不推荐，但通常仍可查询到。
+        val projection = arrayOf(MediaStore.MediaColumns.DATA)
+        try {
+            contentResolver.query(uri, projection, null, null, null)?.use { cursor ->
+                if (cursor.moveToFirst()) {
+                    val columnIndex = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DATA)
+                    return cursor.getString(columnIndex)
+                }
             }
-            loadSpecificMedia(currentImageIndex)
+        } catch (e: Exception) {
+            // 如果查询失败（例如，URI无效或权限问题），记录错误
+            Log.e(TAG, "Failed to get path from URI: $uri", e)
         }
+        // 如果查询没有返回结果或发生异常，则返回 null
+        return null
+    }
+
+
+    // 辅助函数：通知 MediaStore 文件已被删除
+    private fun scanFilePath(path: String) {
+        MediaScannerConnection.scanFile(applicationContext, arrayOf(path), null, null)
     }
 
     private fun loadAllMediaUris() {
@@ -516,7 +629,8 @@ class PhotoListActivity : AppCompatActivity() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             projection = arrayOf(
                 MediaStore.MediaColumns._ID,
-                MediaStore.MediaColumns.DATE_TAKEN
+                MediaStore.MediaColumns.DATE_TAKEN,
+                MediaStore.MediaColumns.DISPLAY_NAME
             )
             // 在 Android 10+，直接使用 RELATIVE_PATH 查询更高效、更标准
             selection = "${MediaStore.MediaColumns.RELATIVE_PATH} = ?"
@@ -525,7 +639,8 @@ class PhotoListActivity : AppCompatActivity() {
             projection = arrayOf(
                 MediaStore.MediaColumns._ID,
                 MediaStore.MediaColumns.DATE_TAKEN,
-                MediaStore.MediaColumns.DATA
+                MediaStore.MediaColumns.DATA,
+                MediaStore.MediaColumns.DISPLAY_NAME
             )
             selection = "${MediaStore.MediaColumns.DATA} LIKE ?"
             selectionArgs = arrayOf("%/$folder/%") // 旧版本只能通过模糊匹配文件路径
@@ -540,12 +655,14 @@ class PhotoListActivity : AppCompatActivity() {
                 val items = mutableListOf<MediaItem>()
                 val idColumn = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns._ID)
                 val dateTakenColumn = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DATE_TAKEN)
+                val displayNameColumn = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DISPLAY_NAME)
 
                 while (cursor.moveToNext()) {
                     val id = cursor.getLong(idColumn)
                     val dateTaken = cursor.getLong(dateTakenColumn)
+                    val displayName = cursor.getString(displayNameColumn)
                     val uri = ContentUris.withAppendedId(contentUri, id)
-                    items.add(MediaItem(uri, type, dateTaken))
+                    items.add(MediaItem(uri, type, dateTaken, displayName))
                 }
                 debugLog("Query found ${items.size} items of type ${type.name} in $folder")
                 items // use块的最后一行作为其返回值

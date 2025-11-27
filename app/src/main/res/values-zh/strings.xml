@@ -9,6 +9,7 @@
     <string name="button_takePhoto">拍照</string>
     <string name="photo_count_format">%1$d / %2$d</string>
     <string name="button_delPhoto">删除</string>
+    <string name="button_delCancel">取消</string>
     <string name="toast_permission_Denied">读取权限被禁止</string>
     <string name="toast_write_permission_granted">已获取权限，请再次尝试</string>
     <string name="toast_write_permission_denied">写入权限被禁止</string>
@@ -38,4 +39,5 @@
     <string name="toast_failed_to_create_image_URI">创建图片URI失败</string>
     <string name="toast_camera_app_cannot_launched">无法启动相机应用，请检查是否已安装或应用权限</string>
     <string name="video_info_format">%1$s / %2$s</string>
+    <string name="dialog_del_confirm_text">请确认删除</string>
 </resources>
