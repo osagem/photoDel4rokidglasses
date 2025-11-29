@@ -1,65 +1,67 @@
 package com.osagem.photoview4rokidglasses
 
 import android.os.Bundle
+import android.content.Intent
+import android.view.View
+import android.view.ViewPropertyAnimator
+import android.view.WindowManager
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
-import android.view.View
-import android.content.Intent
-import android.view.WindowManager
 import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import com.osagem.photoview4rokidglasses.databinding.ActivityMainBinding
+
 
 private const val TYPING_DELAY = 60L // 每个字符显示的延迟时间 (毫秒)
 private const val FADE_IN_DURATION = 500L // 淡入动画的持续时间 (毫秒)
 class MainActivity : AppCompatActivity() {
-
-    // 声明一个 lateinit 的 binding 变量
     private lateinit var binding: ActivityMainBinding
-
-    // 定义常量和懒加载属性
     private val fullSloganText: String by lazy { getString(R.string.main_slogan) }
+    private val animators = mutableListOf<ViewPropertyAnimator>()
+    private var hasAnimationPlayed = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
 
-        // 使用 View Binding 来初始化和设置内容视图
+        // --- 视图和窗口初始化 ---
+        enableEdgeToEdge()
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
-
-        // 屏幕常亮
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        setupFullScreenMode()
 
-        // 对根视图设置窗口内边距监听
+        // --- 设置内容和监听器 ---
         ViewCompat.setOnApplyWindowInsetsListener(binding.main) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
         }
-
-        // --- 开始全屏代码 ---
-        setupFullScreenMode()
-
-        // 通过 binding 对象安全地访问视图
-        // 从自动生成的 BuildConfig 中获取版本名称
-        binding.mainVersion.text = "v${BuildConfig.VERSION_NAME} by osagem"
-
-        // 定义打字机效果
-        startTypingEffect()
-
-        // 设置点击事件监听
         binding.buttonEnter.setOnClickListener {
             val intent = Intent(this, PhotoListActivity::class.java)
             startActivity(intent)
         }
         binding.buttonExitapp.setOnClickListener {
             finishAndRemoveTask()
+        }
+
+        // --- 启动开屏效果 ---
+        binding.mainVersion.text = getString(R.string.version_text_format, BuildConfig.VERSION_NAME)
+        // 只有在 Activity 首次创建时才播放开屏动画，savedInstanceState 在首次创建时为 null，在从后台恢复时非 null
+        if (savedInstanceState == null) {
+            // 首次启动，播放动画
+            startTypingEffect()
+        } else {
+            // 非首次启动 (例如从 PhotoListActivity 返回)，直接显示最终状态
+            binding.mainSlogan.text = fullSloganText
+            showButtonsWithFadeIn()
         }
     }
 
@@ -79,8 +81,8 @@ class MainActivity : AppCompatActivity() {
 
     // 开始打字机效果
     private fun startTypingEffect() {
-        // 为打字效果准备
-        binding.mainSlogan.text = "" // 清空文本，以便重新开始
+        // 为打字效果准备，先清空文本
+        binding.mainSlogan.text = ""
 
         // 确保按钮和版本textview在开始时不可见
         binding.mainVersion.visibility = View.GONE
@@ -88,54 +90,53 @@ class MainActivity : AppCompatActivity() {
         binding.buttonEnter.visibility = View.GONE
 
         lifecycleScope.launch {
-            fullSloganText.forEach { char ->
-                binding.mainSlogan.append(char.toString())
-                delay(TYPING_DELAY)
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                if (!hasAnimationPlayed) {
+                    try {
+                        fullSloganText.forEach { char ->
+                            binding.mainSlogan.append(char.toString())
+                            delay(TYPING_DELAY)
+                        }
+                    } finally {
+                        // 只有当协程仍然是活跃状态时，才执行UI操作
+                        if (isActive) {
+                            showButtonsWithFadeIn()
+                            hasAnimationPlayed = true
+                        }
+                    }
+                } else {
+                    // 如果动画已经播放过，如从下一页返回时，直接显示最终状态，不播放动画
+                    binding.mainSlogan.text = fullSloganText
+                    showButtonsWithFadeIn()
+                }
             }
-            // 协程执行完毕，说明打字机效果完成
-            showButtonsWithFadeIn()
         }
     }
 
     //使用淡入动画显示按钮和版本信息
     private fun showButtonsWithFadeIn() {
-        // 将视图的初始 alpha 设为0，然后设为可见，为淡入做准备
-        binding.mainVersion.apply {
-            alpha = 0f
-            visibility = View.VISIBLE
-        }
-        binding.buttonExitapp.apply {
-            alpha = 0f
-            visibility = View.VISIBLE
-        }
-        binding.buttonEnter.apply {
-            alpha = 0f
-            visibility = View.VISIBLE
-        }
+        // 调用 fadeIn 函数，并将返回的 animator 添加到列表中
+        animators.add(binding.mainVersion.fadeIn(FADE_IN_DURATION))
+        animators.add(binding.buttonExitapp.fadeIn(FADE_IN_DURATION))
 
-        // 执行动画
-        binding.mainVersion.animate()
-            .alpha(1f)
-            .setDuration(FADE_IN_DURATION)
-            .start()
-
-        binding.buttonExitapp.animate()
-            .alpha(1f)
-            .setDuration(FADE_IN_DURATION)
-            .start()
-
-        binding.buttonEnter.animate()
-            .alpha(1f)
-            .setDuration(FADE_IN_DURATION)
-            .withEndAction {
-                // 动画结束后，让 "进入" 按钮获得焦点
+        // 对 buttonEnter 调用 fadeIn，并传入 onEnd 回调
+        animators.add(binding.buttonEnter.fadeIn(FADE_IN_DURATION) {
+            // 动画结束后，如果 Activity 仍然存活，则让 "进入" 按钮获得焦点
+            if (!isFinishing && !isDestroyed) {
                 binding.buttonEnter.requestFocus()
             }
-            .start()
+        })
     }
 
-    // 如有需要清理的资源，就放在这里
+    // 需要清理的资源放在这里
     override fun onDestroy() {
         super.onDestroy()
+        // 移除点击监听器，防止内存泄露
+        binding.buttonEnter.setOnClickListener(null)
+        binding.buttonExitapp.setOnClickListener(null)
+
+        // 遍历列表，统一取消所有正在运行的动画
+        animators.forEach { it.cancel() }
+        animators.clear() // 清理列表
     }
 }

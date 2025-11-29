@@ -38,6 +38,9 @@
     <string name="toast_spec_camera_app_not_found">specified camera application was not found</string>
     <string name="toast_failed_to_create_image_URI">failed to create the image URI</string>
     <string name="toast_camera_app_cannot_launched">camera application cannot be launched</string>
-    <string name="video_info_format">%1$s / %2$s</string>
+    <string name="video_play_info_format">%1$s / %2$s</string>
     <string name="dialog_del_confirm_text">Delete it?</string>
+    <string name="toast_permissions_not_granted_cannot_load_media">Photos cannot be loaded without granting file management permission</string>
+    <string name="duration_format">%1$02d:%2$02d</string>
+    <string name="version_text_format">v%1$s by osagem</string>
 </resources>

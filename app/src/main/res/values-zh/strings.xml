@@ -38,6 +38,9 @@
     <string name="toast_spec_camera_app_not_found">未找到指定的相机应用</string>
     <string name="toast_failed_to_create_image_URI">创建图片URI失败</string>
     <string name="toast_camera_app_cannot_launched">无法启动相机应用，请检查是否已安装或应用权限</string>
-    <string name="video_info_format">%1$s / %2$s</string>
+    <string name="video_play_info_format">%1$s / %2$s</string>
     <string name="dialog_del_confirm_text">请确认删除</string>
+    <string name="toast_permissions_not_granted_cannot_load_media">未授予文件管理权限，无法加载照片</string>
+    <string name="duration_format">%1$02d:%2$02d</string>
+    <string name="version_text_format">v%1$s by osagem</string>
 </resources>

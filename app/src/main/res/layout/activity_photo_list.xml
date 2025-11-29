@@ -28,11 +28,11 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintVertical_bias="0.86"
+        app:layout_constraintVertical_bias="0.8"
         tools:srcCompat="@tools:sample/backgrounds/scenic" />
 
     <TextView
-        android:id="@+id/textView_videoInfo"
+        android:id="@+id/textViewVideoInfo"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text=""
@@ -48,7 +48,7 @@
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="0.73"
         tools:visibility="visible"
-        tools:text="视频文件名.mp4 (1920x1080)" />
+        tools:text="VideoName.mp4 (1920x1080)" />
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/buttonDelphoto"
