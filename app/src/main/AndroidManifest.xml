@@ -4,15 +4,16 @@
 
     <!--
   Android 13 (API 33) 及以上版本推荐使用 granular media permissions.
-  如果您的应用仅需要访问自己创建的媒体文件或需要照片选择器，则不需要这些权限。
-  但由于您需要浏览特定目录（Camera, Pictures），这些是必须的。
+  如果应用仅需要访问自己创建的媒体文件或需要照片选择器，则不需要这些权限。
+  但由于在rokidglasses上需要浏览特定目录（Camera, Pictures），这些是必须的。
 -->
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
 
     <!--
-      为了在 Android 11 (API 30) 及以上版本获得管理所有文件的能力，请使用此权限。
-      这是特殊应用访问权限，需要引导用户到系统设置页面手动授予。
+      为了在 Android 11 (API 30) 及以上版本获得管理所有文件的能力，使用此权限。
+      这个访问权限比较大，一般只有文件管理器类应用才算正常使用，需要引导用户到系统设置页面手动授予。
+      使用这个权限的原因是rokidglasses拍摄视频时会同时生成mp4和同名txt，用mediastore方式无法删除txt文件。
       tools:ignore="ScopedStorage" 用于告诉 Lint 检查器，我们知道这个权限会绕过分区存储。
     -->
     <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE"
@@ -27,7 +28,7 @@
 
     <!--
       为了兼容 Android 12 (API 32) 及以下版本，读取权限是必要的。
-      在更高版本上，它作为 READ_MEDIA_* 的回退。建议保留，但限制到32。
+      在更高版本上，它作为 READ_MEDIA_* 的回退，限制到32。
     -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32" />

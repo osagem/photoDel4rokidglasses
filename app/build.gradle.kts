@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "com.osagem.photoview4rokidglasses"
+    namespace = "com.osagem.photodel4rokidglasses"
     compileSdk = 36
 
     buildFeatures {
@@ -14,11 +14,11 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.osagem.photoview4rokidglasses"
+        applicationId = "com.osagem.photodel4rokidglasses"
         minSdk = 28
         targetSdk = 36
-        versionCode = 10
-        versionName = "1.0.0"
+        versionCode = 11
+        versionName = "1.0.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -46,7 +46,6 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
-//    implementation(libs.androidx.activity)
     implementation(libs.androidx.constraintlayout)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

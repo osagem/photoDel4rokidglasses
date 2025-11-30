@@ -1,4 +1,4 @@
-package com.osagem.photoview4rokidglasses
+package com.osagem.photodel4rokidglasses
 
 import android.content.Context
 import android.graphics.Bitmap
@@ -9,6 +9,9 @@ import android.graphics.Typeface
 import android.view.View
 import android.view.ViewPropertyAnimator
 
+/**
+ * 淡入效果，程序启动页用到，工具程序没啥花活的必要，稍稍来点小动效吧
+ */
 fun View.fadeIn(duration: Long, onEnd: (() -> Unit)? = null): ViewPropertyAnimator {
     alpha = 0f
     visibility = View.VISIBLE
@@ -53,4 +56,18 @@ fun Context.createBitmapFromEmoji(emojiString: String, size: Int, color: Int = C
 
     canvas.drawText(emojiString, x, y, paint)
     return bitmap
+}
+
+/**
+ * 将毫秒数格式化为 "mm:ss" 格式的字符串。
+ *
+ * @param milliseconds 要格式化的时长（毫秒）。
+ * @return 格式化后的字符串，例如 "01:23"。
+ */
+fun Context.formatDuration(milliseconds: Long): String {
+    val totalSeconds = milliseconds / 1000
+    val minutes = totalSeconds / 60
+    val seconds = totalSeconds % 60
+    // 使用 Context 的 getString 方法来访问字符串资源
+    return getString(R.string.duration_format, minutes, seconds)
 }

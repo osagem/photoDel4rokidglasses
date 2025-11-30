@@ -1,4 +1,4 @@
-package com.osagem.photoview4rokidglasses
+package com.osagem.photodel4rokidglasses
 
 
 import com.bumptech.glide.annotation.GlideModule

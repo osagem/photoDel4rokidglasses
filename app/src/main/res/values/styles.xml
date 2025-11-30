@@ -12,22 +12,14 @@
         <item name="buttonBarNeutralButtonStyle">@style/CustomDialogButton</item>
         <item name="android:windowMinWidthMajor">@dimen/dialog_width_any_percent</item>
         <item name="android:windowMinWidthMinor">@dimen/dialog_width_any_percent</item>
-        <item name="materialAlertDialogButtonSpacerVisibility">8</item> <!-- 移除按钮间的间隙 8=gone -->
+        <item name="materialAlertDialogButtonSpacerVisibility">8</item>
         <item name="colorPrimary">@color/rgrcolor</item>
-        <!-- 【新增】重写内部按钮面板的样式，使其居中 -->
-<!--        <item name="materialAlertDialogButtonPanelStyle">@style/CenteredAlertDialogButtons</item>-->
     </style>
-
-    <!-- 【新增】定义居中的按钮面板样式 -->
-<!--    <style name="CenteredAlertDialogButtons" parent="Widget.MaterialComponents.ButtonBar.AlertDialog">-->
-<!--        <item name="android:gravity">center</item>-->
-<!--    </style>-->
 
     <!-- 标题文字样式 -->
     <style name="CustomDialogTitleText" parent="TextAppearance.AppCompat.Title">
         <item name="android:textColor">@color/rgrcolor_normal</item>
         <item name="android:textSize">20sp</item>
-<!--        <item name="android:textStyle">bold</item>-->
     </style>
 
     <!-- 内容文字样式 -->

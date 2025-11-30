@@ -1,7 +1,7 @@
-package com.osagem.photoview4rokidglasses
+package com.osagem.photodel4rokidglasses
 
-import android.os.Bundle
 import android.content.Intent
+import android.os.Bundle
 import android.view.View
 import android.view.ViewPropertyAnimator
 import android.view.WindowManager
@@ -14,58 +14,59 @@ import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import com.osagem.photodel4rokidglasses.databinding.ActivityMainBinding
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import com.osagem.photoview4rokidglasses.databinding.ActivityMainBinding
 
-
-private const val TYPING_DELAY = 60L // 每个字符显示的延迟时间 (毫秒)
-private const val FADE_IN_DURATION = 500L // 淡入动画的持续时间 (毫秒)
 class MainActivity : AppCompatActivity() {
+    // --- 私有属性 ---
     private lateinit var binding: ActivityMainBinding
     private val fullSloganText: String by lazy { getString(R.string.main_slogan) }
     private val animators = mutableListOf<ViewPropertyAnimator>()
     private var hasAnimationPlayed = false
 
+    // --- 生命周期方法 ---
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // --- 视图和窗口初始化 ---
+        // 视图和窗口初始化
         enableEdgeToEdge()
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         setupFullScreenMode()
 
-        // --- 设置内容和监听器 ---
-        ViewCompat.setOnApplyWindowInsetsListener(binding.main) { v, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
-            insets
-        }
-        binding.buttonEnter.setOnClickListener {
-            val intent = Intent(this, PhotoListActivity::class.java)
-            startActivity(intent)
-        }
-        binding.buttonExitapp.setOnClickListener {
-            finishAndRemoveTask()
-        }
+        // 设置内容和监听器
+        setupWindowInsetsListener() // <--- 提取UI设置逻辑
+        setupClickListeners()      // <--- 提取监听器设置逻辑
 
-        // --- 启动开屏效果 ---
+        // 启动开屏效果
         binding.mainVersion.text = getString(R.string.version_text_format, BuildConfig.VERSION_NAME)
         // 只有在 Activity 首次创建时才播放开屏动画，savedInstanceState 在首次创建时为 null，在从后台恢复时非 null
         if (savedInstanceState == null) {
             // 首次启动，播放动画
             startTypingEffect()
         } else {
-            // 非首次启动 (例如从 PhotoListActivity 返回)，直接显示最终状态
+            // 非首次启动 (例如从 PhotoListActivity 返回)，指令其直接显示最终状态
             binding.mainSlogan.text = fullSloganText
             showButtonsWithFadeIn()
         }
     }
 
-    // 设置真全屏
+    // 清理资源
+    override fun onDestroy() {
+        super.onDestroy()
+        // 移除点击监听器，防止内存泄露
+        binding.buttonEnter.setOnClickListener(null)
+        binding.buttonExitapp.setOnClickListener(null)
+
+        // 遍历列表，统一取消所有正在运行的动画
+        animators.forEach { it.cancel() }
+        animators.clear() // 清理列表
+    }
+
+    // --- 私有辅助方法：UI 设置 ---
     private fun setupFullScreenMode() {
         // 让内容布局扩展到系统栏（状态栏和导航栏）后面
         WindowCompat.setDecorFitsSystemWindows(window, false)
@@ -79,7 +80,27 @@ class MainActivity : AppCompatActivity() {
             WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
     }
 
-    // 开始打字机效果
+    // 设置窗口内边距监听器，以适应系统栏（如状态栏、导航栏）
+    private fun setupWindowInsetsListener() {
+        ViewCompat.setOnApplyWindowInsetsListener(binding.main) { v, insets ->
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
+            insets
+        }
+    }
+
+    //统一设置所有点击事件监听器
+    private fun setupClickListeners() {
+        binding.buttonEnter.setOnClickListener {
+            val intent = Intent(this, PhotoListActivity::class.java)
+            startActivity(intent)
+        }
+        binding.buttonExitapp.setOnClickListener {
+            finishAndRemoveTask()
+        }
+    }
+
+    // --- 私有辅助方法：动画效果 ---
     private fun startTypingEffect() {
         // 为打字效果准备，先清空文本
         binding.mainSlogan.text = ""
@@ -113,7 +134,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    //使用淡入动画显示按钮和版本信息
+    // 在顶部文字打字效果结束后，使用淡入动态效果显示版本信息和主功能按钮
     private fun showButtonsWithFadeIn() {
         // 调用 fadeIn 函数，并将返回的 animator 添加到列表中
         animators.add(binding.mainVersion.fadeIn(FADE_IN_DURATION))
@@ -128,15 +149,4 @@ class MainActivity : AppCompatActivity() {
         })
     }
 
-    // 需要清理的资源放在这里
-    override fun onDestroy() {
-        super.onDestroy()
-        // 移除点击监听器，防止内存泄露
-        binding.buttonEnter.setOnClickListener(null)
-        binding.buttonExitapp.setOnClickListener(null)
-
-        // 遍历列表，统一取消所有正在运行的动画
-        animators.forEach { it.cancel() }
-        animators.clear() // 清理列表
-    }
 }
