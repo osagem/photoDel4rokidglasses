@@ -19,6 +19,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "photoView4rokidglasses"
+rootProject.name = "photoDel4rokidglasses"
 include(":app")
  

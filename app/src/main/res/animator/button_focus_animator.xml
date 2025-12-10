@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 因为rokid glasses目前是单绿的显示，导致焦点状态并不明显，特此改为获得焦点时的按钮边框加粗osagem251211 -->
+    <item android:state_focused="true">
+        <objectAnimator
+            android:propertyName="strokeWidth"
+            android:duration="100"
+            android:valueFrom="2"
+            android:valueTo="4"
+            android:valueType="intType" />
+    </item>
+    <!-- 默认状态 -->
+    <item>
+        <objectAnimator
+            android:propertyName="strokeWidth"
+            android:duration="100"
+            android:valueFrom="4"
+            android:valueTo="2"
+            android:valueType="intType" />
+    </item>
+</selector>

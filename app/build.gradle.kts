@@ -17,8 +17,8 @@ android {
         applicationId = "com.osagem.photodel4rokidglasses"
         minSdk = 28
         targetSdk = 36
-        versionCode = 11
-        versionName = "1.0.1"
+        versionCode = 12
+        versionName = "1.0.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

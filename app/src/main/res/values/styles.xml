@@ -30,13 +30,13 @@
     </style>
 
     <!-- 按钮基础样式 -->
-    <style name="CustomDialogButton" parent="Widget.MaterialComponents.Button.OutlinedButton">
+    <!-- 通过继承 Widget.App.Button.OutlinedButton 来复用主界面的按钮样式（包含焦点状态下边框加粗的效果） -->
+    <style name="CustomDialogButton" parent="Widget.App.Button.OutlinedButton">
         <item name="android:textSize">14sp</item>
         <item name="android:paddingStart">20dp</item>
         <item name="android:paddingEnd">20dp</item>
         <item name="android:layout_marginStart">8dp</item>
         <item name="android:layout_marginEnd">8dp</item>
-        <item name="strokeColor">@color/button_stroke_color_selector</item>
         <item name="strokeWidth">2px</item>
         <item name="cornerRadius">12px</item>
     </style>

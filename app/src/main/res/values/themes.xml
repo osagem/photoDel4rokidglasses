@@ -1,4 +1,4 @@
-<resources xmlns:tools="http://schemas.android.com/tools">
+<resources>
     <style name="Base.Theme.PhotoView4rokidglasses" parent="Theme.Material3.DayNight.NoActionBar">
         <item name="materialButtonOutlinedStyle">@style/Widget.App.Button.OutlinedButton</item>
     </style>
@@ -8,5 +8,6 @@
 
     <style name="Widget.App.Button.OutlinedButton" parent="Widget.MaterialComponents.Button.OutlinedButton">
         <item name="strokeColor">@color/button_stroke_color_selector</item>
+        <item name="android:stateListAnimator">@animator/button_focus_animator</item>
     </style>
 </resources>
